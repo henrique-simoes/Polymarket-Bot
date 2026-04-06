@@ -1,0 +1,87 @@
+# Pre-commit hooks for Polymarket Bot
+# Install: pip install pre-commit
+# Setup: pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  # Python code formatting
+  - repo: https://github.com/psf/black
+    rev: 24.1.1
+    hooks:
+      - id: black
+        language_version: python3.10
+
+  # Import sorting
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: ["--profile", "black"]
+
+  # Linting
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8
+        args:
+          - "--max-line-length=120"
+          - "--extend-ignore=E203,W503"
+          - "--per-file-ignores=__init__.py:F401"
+
+  # Type checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.8.0
+    hooks:
+      - id: mypy
+        additional_dependencies: [types-requests]
+        args: ["--ignore-missing-imports", "--check-untyped-defs"]
+
+  # Security checks
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.6
+    hooks:
+      - id: bandit
+        args: ["-ll", "-i", "-x", "tests/"]
+
+  # Architecture compliance checks (custom)
+  - repo: local
+    hooks:
+      # Check for requests without timeout
+      - id: check-requests-timeout
+        name: Check requests have timeout
+        entry: python scripts/check_architecture.py --check-timeout
+        language: python
+        files: \.py$
+        pass_filenames: true
+
+      # Check for bare except blocks
+      - id: check-bare-except
+        name: Check no bare except blocks
+        entry: python scripts/check_architecture.py --check-except
+        language: python
+        files: \.py$
+        pass_filenames: true
+
+      # Check for datetime.now() without timezone
+      - id: check-datetime-utc
+        name: Check datetime uses UTC
+        entry: python scripts/check_architecture.py --check-datetime
+        language: python
+        files: \.py$
+        pass_filenames: true
+
+      # Check for shared state without locks
+      - id: check-thread-safety
+        name: Check thread safety
+        entry: python scripts/check_architecture.py --check-threads
+        language: python
+        files: \.py$
+        pass_filenames: true
+
+      # Check for caches without clear method
+      - id: check-cache-expiration
+        name: Check cache expiration
+        entry: python scripts/check_architecture.py --check-cache
+        language: python
+        files: \.py$
+        pass_filenames: true

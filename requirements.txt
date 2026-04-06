@@ -1,0 +1,38 @@
+# Core dependencies
+numpy
+pandas
+scikit-learn
+scipy
+joblib
+
+# Blockchain
+web3
+eth-account
+
+# Technical analysis
+rich>=13.0.0
+ta-lib
+
+# Async & WebSocket
+websockets
+websocket-client
+aiohttp
+asyncio
+
+# Database
+psycopg2-binary
+sqlalchemy
+
+# Monitoring
+prometheus-client
+
+# Configuration
+python-dotenv
+pyyaml
+
+# Utilities
+requests
+ccxt
+
+# Polymarket Official SDK
+py-clob-client

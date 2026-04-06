@@ -1,0 +1,362 @@
+# Polymarket Trading Bot Configuration
+# Optimized for Standard ML + Option 3 (Any) - Fade Overpriced Markets
+# Strategy: Buy NO when YES is overpriced (85¢+), buy YES when NO is overpriced
+# User's profitable setup: $4-5 wins per trade, 67% win rate
+
+trading:
+  # Initial bet size in USDC (your profitable setting)
+  initial_bet_usdc: 1.0  # Polymarket minimum order is $1.00
+
+  # Percentage of profit to add to next bet after win
+  profit_increase_pct: 10  # Conservative compounding
+
+  # Coins to trade on 15-minute markets
+  coins:
+    - BTC
+    - ETH
+    - SOL
+
+  # Market selection strategy (for 15M markets)
+  market_selection:
+    # Timeframe (15M for 15-minute markets)
+    timeframe: "15M"
+
+    # Minimum liquidity (USDC) required
+    min_liquidity: 1000
+
+    # Only trade on active markets
+    active_only: true
+
+  # Enhancement parameters (Optimized for Standard ML + Any)
+  enhancements:
+    # Market mechanics validation (YES + NO = 1.0 check)
+    market_validation_enabled: true
+    market_validation_tolerance: 0.01  # 1% tolerance
+    arbitrage_threshold: 0.05  # 5% edge required (matches profitable setup)
+
+    # Cross-market correlation features
+    cross_market_features_enabled: true
+
+    # "Buying NO" bias when uncertain (KEY for fading overpriced markets)
+    uncertainty_bias_enabled: true
+    uncertainty_bias_threshold: 0.05  # Within ±5% of 50%
+
+    # Orderbook depth analysis
+    depth_analysis_enabled: true
+    min_market_depth: 500  # Lower minimum for more opportunities
+    max_spread_pct: 3.0  # Allow wider spreads (3% for Option 3 flexibility)
+
+    # Dynamic bet sizing (LMSR-aware)
+    dynamic_sizing_enabled: true
+
+  # Meta-learning: Track and adapt strategy performance
+  meta_learning:
+    enabled: true
+    min_trades_for_decision: 5  # Need 5 trades before disabling strategy
+    win_rate_threshold: 30.0  # Disable if win rate < 30%
+    strategy_stats_file: "data/strategy_stats.json"
+
+# Pure Arbitrage Mode (NEW - Conservative, Proven Strategy)
+# This mode disables ML entirely and uses only mathematical arbitrage
+# Proven to have extracted $40M+ from Polymarket markets
+pure_arbitrage:
+  # Enable pure arbitrage mode (disables all ML features)
+  enabled: false  # DISABLED - Use Standard ML mode (60% arb + 40% ML) for profitable setup
+
+  # Strategy 1: Binary Complement Arbitrage (YES + NO < $1.00)
+  # Most profitable: $39.5M+ extracted using this alone
+  # If YES + NO < $1.00, buy both sides for guaranteed profit
+  complement_arbitrage: true
+  complement_threshold: 0.98  # Flag if YES+NO < 0.98 (2% edge)
+
+  # Strategy 2: Spot Price Arbitrage
+  # If current BTC price is clearly above/below strike, market should reflect this
+  spot_arbitrage: true
+  spot_buffer_pct: 0.5  # Require 0.5% buffer from strike price
+  min_edge_pct: 5.0  # Minimum 5% edge required (after fees)
+
+  # Strategy 3: Lotto Strategy (Low Probability Bets)
+  # Focus on prices <15 cents (favorable 9:1 asymmetry)
+  # Only need 10.2% win rate to profit (vs 72% for "safe" bets)
+  lotto_strategy: true
+  lotto_max_price: 0.15  # Only buy if price <15 cents
+  lotto_min_edge_pct: 10.0  # Minimum 10% estimated edge
+
+  # Fee Awareness
+  # Polymarket charges dynamic taker fees (peaks at 3.15% at 50% probability)
+  # Fees are lower at extreme probabilities (0-10% and 90-100%)
+  max_fee_pct: 3.15  # Conservative estimate (actual may be lower)
+
+  # Timing
+  # Only trade in last 5 minutes (snipe window) for higher certainty
+  snipe_window: 300  # 300 seconds = 5 minutes (fallback if dynamic disabled)
+
+# Dynamic Entry Window (NEW - Edge-Based Timing)
+# Allows earlier entry when edge is larger
+# Higher edge = more certainty = can enter earlier
+# ML learns which entry timings work best for each edge level
+dynamic_entry_window:
+  # Enable dynamic window (recommended for Time-Decay mode)
+  enabled: true
+
+  # Minimum edge required to place any trade
+  min_edge_threshold: 0.05  # 5% minimum edge
+
+  # Edge tiers: Higher edge allows earlier entry
+  # Format: min_edge (decimal), max_time (seconds before expiry)
+  tiers:
+    - min_edge: 0.20   # 20%+ edge
+      max_time: 720    # Can enter up to 12 minutes before expiry
+    - min_edge: 0.15   # 15%+ edge
+      max_time: 600    # Can enter up to 10 minutes before expiry
+    - min_edge: 0.10   # 10%+ edge
+      max_time: 480    # Can enter up to 8 minutes before expiry
+    - min_edge: 0.07   # 7%+ edge
+      max_time: 360    # Can enter up to 6 minutes before expiry
+    - min_edge: 0.05   # 5%+ edge (minimum)
+      max_time: 300    # Can enter up to 5 minutes before expiry
+
+  # ML will learn which tiers perform best and can recommend adjustments
+  # After 100+ trades, check time_decay_calibration.json for insights
+
+# Late-Game Fallback (Last Resort When No BS Opportunities)
+# If Time-Decay BS finds no 75-85¢ opportunities with 15%+ edge, this kicks in
+# Strategy: Bet on whichever direction is showing 75-85¢ (market already decided)
+# Rationale: At 200s left with 75¢+ price, market is committing to a direction
+# Potential profit: Buy at 75-85¢, sell at 99¢+ = 15-25% gain
+late_game_fallback:
+  # Enable late-game fallback (only activates if BS found nothing)
+  enabled: true
+
+  # Maximum time remaining to trigger fallback (seconds)
+  max_time_remaining: 200  # Only in last 200 seconds (~3.3 minutes)
+
+  # Price range to enter (decimal, e.g., 0.75 = 75¢)
+  min_price: 0.75  # Minimum 75¢ (matches main TD range)
+  max_price: 0.85  # Maximum 85¢ (don't chase above this)
+
+  # This creates a "momentum following" strategy:
+  # - Market showing 75-85¢ = strong conviction in one direction
+  # - Still has 15-25% upside to 99¢+ settlement
+  # - ML will learn if this is profitable vs waiting
+
+# Low-Vol Lotto Mode F (Contrarian Strategy for Low-Volatility Regimes)
+# When vol is low, price hovers near strike → cheap tokens have good odds
+# Buy ≤25¢ tokens when realized vol is much lower than assumed vol
+low_vol_lotto:
+  enabled: true
+  max_token_price: 0.25        # Only buy tokens ≤25¢
+  min_vol_ratio: 1.5           # Only activate when assumed/realized ≥ 1.5x
+  max_time_remaining: 300      # Entry window: last 5 minutes
+  bet_size_usdc: 1.0           # Fixed $1 bet (minimum order)
+
+# Contrarian Mode (NEW - Fade Extreme Prices)
+# Bet AGAINST the crowd when they're too certain
+# Only need 15% win rate to profit!
+contrarian:
+  # Enable contrarian strategy
+  enabled: false  # DISABLED - Not integrated into main bot yet
+
+  # Price Thresholds
+  extreme_threshold: 0.85  # Fade when price >85¢ (85% certainty)
+  max_entry_price: 0.15  # Only buy if opposite side <15¢
+
+  # Timing (only trade near expiry for best reversal chances)
+  min_time_remaining: 60  # At least 1 minute left
+  max_time_remaining: 180  # At most 3 minutes left
+
+  # Why these settings work:
+  # - Markets overshoot at extremes (panic/euphoria)
+  # - Last-minute reversals are common
+  # - 15¢ entry = 566% max profit vs 100% max loss
+  # - Break-even at 15% win rate (very forgiving!)
+
+# Market Making Mode (NEW - Earn Maker Rebates)
+# Provide liquidity by placing limit orders on both sides
+# Earn 0.5-3.15% maker rebates + spread profit
+# Can run simultaneously with pure arbitrage (dual-mode operation)
+market_making:
+  # Enable market making (can be used with pure_arbitrage simultaneously)
+  enabled: false  # Set to true to enable market making
+
+  # Spread Requirements
+  min_spread_pct: 2.0  # Only make markets if spread > 2%
+  target_spread_pct: 4.0  # Our bid-ask spread target (4%)
+
+  # Rebate Estimation
+  # Polymarket offers 0.5% (at extreme odds) to 3.15% (at 50%) maker rebates
+  # We use conservative 1.5% average estimate
+  estimated_maker_rebate: 1.5  # Expected rebate per side (%)
+
+  # Position Sizing
+  order_size_usdc: 5.0  # Size per limit order (both bid and ask)
+  max_position_usdc: 20.0  # Maximum inventory risk
+
+  # Quote Management
+  quote_ttl_seconds: 180  # Cancel quotes after 3 minutes
+  update_frequency: 30  # Check and update quotes every 30s
+
+  # Risk Controls
+  # Only make markets when time_remaining: 5-10 minutes
+  # Too early: uncertainty too high
+  # Too late: not enough time for both sides to fill
+  min_time_remaining: 300  # 5 minutes
+  max_time_remaining: 600  # 10 minutes
+
+risk_management:
+  # Stop trading if daily loss exceeds this percentage
+  max_daily_loss_pct: 20
+
+  # Stop after X consecutive losses (circuit breaker)
+  circuit_breaker_consecutive_losses: 5
+
+  # Never bet more than X times initial bet
+  max_bet_multiplier: 5.0
+
+  # Enable volatility filtering
+  volatility_filter_enabled: true
+
+  # Maximum price volatility (0-1)
+  max_volatility: 0.05
+
+  # Position Management (Week 4 - ML-Driven Profit-Taking)
+  position_management:
+    # Enable ML-driven profit-taking system
+    # When enabled, learns optimal exit timing through data
+    # DISABLED by default: Trust the ML model, hold until resolution
+    enabled: false
+
+    # ML-based profit-taking (Week 4 feature)
+    # Learns when to exit positions early vs hold to expiry
+    # No arbitrary thresholds - purely data-driven decisions
+    use_ml_exit_timing: true
+
+    # Legacy threshold-based options (not recommended)
+    # Only used if use_ml_exit_timing is false
+    stop_loss_pct: 15.0  # Not implemented (user preference)
+    take_profit_pct: 50.0
+
+    # How often to check position (seconds)
+    check_interval: 5
+
+    # Maximum time to monitor position (seconds)
+    max_monitoring_time: 300  # 5 minutes
+
+  # Edge Cooldown - Skip trading during low-edge market regimes
+  # Tracks best arb edge each round. If consecutive rounds show no edge above
+  # pause_threshold, pauses trading (still monitors + collects ML data).
+  # Resumes after consecutive rounds where edge exceeds resume_threshold
+  # for resume_edge_pct% of monitoring time.
+  edge_cooldown:
+    enabled: true
+    pause_threshold: 8.0        # Edge level to check against
+    pause_edge_pct: 20.0        # If edge >= pause_threshold for LESS than this % of round → low-edge round
+    pause_after_rounds: 2       # How many consecutive low-edge rounds trigger pause
+    resume_threshold: 15.0      # Need this edge to count toward a "signal round"
+    resume_edge_pct: 40.0       # Edge must be above resume_threshold for this % of round
+    resume_after_rounds: 2      # How many signal rounds needed to resume
+
+money_management:
+  # Balance verification
+  auto_balance_refresh: true        # Refresh wallet balance after each round
+  balance_check_delay_sec: 60       # Wait 60s after settlement before checking balance
+
+  # Persistent state tracking
+  persistent_state_enabled: true    # Save wins/losses/profits to disk
+  state_file: "data/strategy_state.json"  # State file path
+  trade_log_file: "data/trade_log.jsonl"  # Trade log file path (append-only)
+
+  # Settlement verification
+  verify_settlement: true           # Verify Chainlink oracle resolution matches expected
+  settlement_wait_sec: 90           # Wait 90s for settlement to complete
+
+  # Auto-withdrawal (DISABLED by default - requires more testing)
+  auto_withdrawal_enabled: false    # Automatically withdraw profits when threshold reached
+  auto_withdrawal_threshold: 5.0    # Withdraw when saved_profits >= 5.0 USDC
+  keep_minimum_balance: 1.0         # Always keep at least 1.0 USDC for trading
+
+machine_learning:
+  # Retrain model frequency (number of observations)
+  retrain_frequency: 5
+
+  # Buffer size for observation history
+  observation_buffer_size: 5000
+
+  # Ensemble models
+  ensemble_models:
+    - random_forest
+    - gradient_boosting
+
+  random_forest:
+    n_estimators: 50
+    max_depth: 10
+    min_samples_split: 2
+    min_samples_leaf: 1
+
+  gradient_boosting:
+    n_estimators: 50
+    max_depth: 5
+    learning_rate: 0.1
+    min_samples_split: 2
+    min_samples_leaf: 1
+
+# Exchange price feeds for arbitrage detection (optional)
+exchanges:
+  binance:
+    ws_url: "wss://stream.binance.com:9443/ws"
+    symbols:
+      BTC: "btcusdt"
+      ETH: "ethusdt"
+      SOL: "solusdt"
+
+  coinbase:
+    ws_url: "wss://ws-feed.exchange.coinbase.com"
+    symbols:
+      BTC: "BTC-USD"
+      ETH: "ETH-USD"
+      SOL: "SOL-USD"
+
+# Polymarket Configuration
+polymarket:
+  # Network settings
+  network: "polygon"
+  chain_id: 137
+
+  # Token addresses (DO NOT CHANGE)
+  usdc_address: "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"  # Bridged USDC.e (REQUIRED by CLOB)
+  # Note: CLOB uses Bridged USDC, NOT Native USDC (0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359)
+  ctf_address: "0x4D97DCd97eC945f40cF65F87097ACe5EA0476045"   # Conditional Token Framework
+  exchange_address: "0x4bFb41d5B3570DeFd03C39a9A4D8dE6Bd8B8982E"  # Polymarket Exchange
+
+  # Official API endpoints (DO NOT CHANGE)
+  gamma_api_url: "https://gamma-api.polymarket.com"  # Market discovery
+  clob_api_url: "https://clob.polymarket.com"  # Trading (off-chain, NO gas fees)
+  data_api_url: "https://data-api.polymarket.com"  # Historical data
+  ws_url: "wss://ws-subscriptions-clob.polymarket.com"  # Real-time updates
+
+  # Authentication settings
+  signature_type: 2  # 0=EOA (standalone), 1=POLY_PROXY (MagicLink), 2=GNOSIS_SAFE (MetaMask proxy)
+  funder: "0xYOUR_PROXY_WALLET_ADDRESS_HERE"  # Get from polymarket.com/settings
+
+  # Trading settings
+  order_type: "GTC"  # GTC (Good-Til-Canceled), FOK (Fill-or-Kill), IOC (Immediate-or-Cancel)
+
+  # IMPORTANT NOTES:
+  # - Trading on CLOB is OFF-CHAIN (no gas fees for orders)
+  # - POL (Polygon native token) only needed for initial token approvals (self-managed wallets)
+  # - Email/Google signups: Polymarket covers ALL gas costs via proxy wallet
+  # - Currency is USDC (NOT USDT)
+  # - You must approve both USDC and CTF tokens before first trade
+
+# Monitoring (optional)
+monitoring:
+  enabled: true
+  prometheus_port: 9090
+  metrics_interval: 60
+  save_trades_to_db: false
+  alert_on_loss_streak: 3
+
+# Database (optional - for trade history)
+database:
+  enabled: false
+  url: "postgresql://user:password@localhost:5432/polymarket_bot"

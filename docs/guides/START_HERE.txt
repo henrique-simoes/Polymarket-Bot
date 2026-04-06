@@ -1,0 +1,28 @@
+===========================================
+HOW TO RUN THE BOT (Windows)
+===========================================
+
+Step 1: Open Command Prompt in this folder
+
+Step 2: Activate the virtual environment:
+   venv\Scripts\activate
+
+Step 3: Run the bot:
+   python run_bot.py
+
+Alternative (without activating venv):
+   venv\Scripts\python run_bot.py
+
+===========================================
+TROUBLESHOOTING
+===========================================
+
+If you see "Python not found":
+- Use: py run_bot.py
+- Or: venv\Scripts\python run_bot.py
+
+If you see import errors:
+- Make sure you're in the project folder
+- Make sure venv is activated
+
+===========================================
