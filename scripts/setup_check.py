@@ -88,27 +88,30 @@ def run_checks():
 
     # 3. Check Wallet Balances
     if pk and rpc:
-        try:Acc = Account.from_key(pk); W3 = Web3(Web3.HTTPProvider(rpc)); 
-        if W3.is_connected():
-            pol_balance = W3.eth.get_balance(Acc.address)
-            pol_eth = W3.from_wei(pol_balance, 'ether')
-            if pol_eth < 0.05:
-                print_status(f"Low POL balance ({pol_eth:.4f} POL). You need at least ~0.1 POL for gas/approvals.", "warn")
-            else:
-                print_status(f"POL Balance: {pol_eth:.4f} POL (OK for gas)", "pass")
-            
-            # Check USDC.e (Bridged)
-            usdc_e_addr = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"
-            usdc_abi = [{"constant":True,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"type":"function"}]
-            usdc_contract = W3.eth.contract(address=W3.to_checksum_address(usdc_e_addr), abi=usdc_abi)
-            usdc_bal = usdc_contract.functions.balanceOf(Acc.address).call()
-            usdc_dec = Decimal(usdc_bal) / Decimal(10**6)
-            
-            if usdc_dec < 1.0:
-                print_status(f"Low USDC.e balance ({usdc_dec:.2f}). Polymarket minimum trade is $1.00.", "warn")
-            else:
-                print_status(f"USDC.e Balance: {usdc_dec:.2f} (OK for trading)", "pass")
-        except: pass
+        try:
+            Acc = Account.from_key(pk)
+            W3 = Web3(Web3.HTTPProvider(rpc))
+            if W3.is_connected():
+                pol_balance = W3.eth.get_balance(Acc.address)
+                pol_eth = W3.from_wei(pol_balance, 'ether')
+                if pol_eth < 0.05:
+                    print_status(f"Low POL balance ({pol_eth:.4f} POL). You need at least ~0.1 POL for gas/approvals.", "warn")
+                else:
+                    print_status(f"POL Balance: {pol_eth:.4f} POL (OK for gas)", "pass")
+                
+                # Check USDC.e (Bridged)
+                usdc_e_addr = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"
+                usdc_abi = [{"constant":True,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"type":"function"}]
+                usdc_contract = W3.eth.contract(address=W3.to_checksum_address(usdc_e_addr), abi=usdc_abi)
+                usdc_bal = usdc_contract.functions.balanceOf(Acc.address).call()
+                usdc_dec = Decimal(usdc_bal) / Decimal(10**6)
+                
+                if usdc_dec < 1.0:
+                    print_status(f"Low USDC.e balance ({usdc_dec:.2f}). Polymarket minimum trade is $1.00.", "warn")
+                else:
+                    print_status(f"USDC.e Balance: {usdc_dec:.2f} (OK for trading)", "pass")
+        except Exception:
+            pass
 
     print_status("Check complete.", "info")
 

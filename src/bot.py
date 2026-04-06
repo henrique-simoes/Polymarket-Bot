@@ -65,6 +65,7 @@ from .trading.strategy import TradingStrategy
 from .core.doctor import BotDoctor
 from .utils.startup_recommendations import StartupRecommendationEngine
 from .utils.vwap import get_vwap_calculator
+from .core.setup_wizard import SetupWizard, check_setup_required
 
 # Setup Standard Logging
 logging.basicConfig(
@@ -95,9 +96,53 @@ class AdvancedPolymarketBot:
         console.clear()
         console.print(Panel.fit("[bold blue]INITIALIZING ADVANCED POLYMARKET BOT[/bold blue]", border_style="blue"))
         load_dotenv()
+
+        # Check for initial setup requirement
+        if check_setup_required():
+            wizard = SetupWizard()
+            wizard.run()
+            # Reload env after wizard finishes
+            load_dotenv(override=True)
         
         try:
             with open(config_path, 'r') as f: self.config = yaml.safe_load(f)
+            
+            # Start verification loop
+            while True:
+                funder = self.config['polymarket'].get('funder')
+                if funder == "0xYOUR_PROXY_WALLET_ADDRESS_HERE" or funder == "0x...": 
+                    funder = os.getenv('PROXY_ADDRESS') # Try env if config is placeholder
+                
+                self.wallet = WalletManager(proxy_address=funder)
+                
+                if not self.wallet.initialized:
+                    console.print("[red]Wallet initialization failed. Starting setup...[/red]")
+                    wizard = SetupWizard()
+                    wizard.run()
+                    load_dotenv(override=True)
+                    continue
+
+                # Verify balance/access
+                balance = self.wallet.get_usdc_balance()
+                if balance > 0:
+                    console.print(f"[green]Verification Success! Balance: {balance} USDC[/green]")
+                    break
+                else:
+                    console.print(Panel.fit(
+                        f"[yellow]WALLET VERIFIED BUT BALANCE IS 0.00 USDC[/yellow]\n"
+                        f"Address: [bold]{self.wallet.effective_address}[/bold]\n"
+                        "Please ensure you have Bridged USDC (USDC.e) on Polygon.\n"
+                        "The bot will wait for funds before proceeding...",
+                        border_style="yellow"
+                    ))
+                    # Allow user to re-configure if they think address is wrong
+                    if Confirm.ask("Do you want to re-configure your wallet/proxy address?"):
+                        wizard = SetupWizard()
+                        wizard.run()
+                        load_dotenv(override=True)
+                        continue
+                    else:
+                        break # Continue with 0 balance (read-only)
         except Exception as e:
             logger.error(f"Failed to load config: {e}"); raise
 
