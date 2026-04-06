@@ -22,12 +22,12 @@ Designed for public use: simply clone, configure your `.env` keys, and run.
 ### Main Trading Dashboard
 The bot features a high-fidelity, real-time CLI dashboard built with the `rich` library. It monitors active markets, price feeds, and machine learning signals in a non-blocking parallel loop.
 
-![Main Trading UI](screenshots/Main_UI.png)
+![Main Trading UI](Screenshots/Main_UI.png)
 
 ### Mode Profitability Analysis (Real-Time Backtesting)
 Upon startup, the bot performs a **Dynamic Historical Simulation**. It fetches the last 12–48 hours of resolved markets and Binance price data to "replay" its strategies (A-F). This allows the bot to recommend the most profitable strategy for the *current* market regime before you even place your first trade.
 
-![Simulation and Mode Recommendation](screenshots/Simulation.png)
+![Simulation and Mode Recommendation](Screenshots/Simulation.png)
 
 ---
 
